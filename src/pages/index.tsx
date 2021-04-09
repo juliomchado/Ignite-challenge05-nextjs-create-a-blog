@@ -1,14 +1,17 @@
 /* eslint-disable import/no-unresolved */
 import { GetStaticProps } from 'next';
+import Prismic from '@prismicio/client';
 import Head from 'next/head';
 
 import { getPrismicClient } from '../services/prismic';
 
 import commonStyles from '../styles/common.module.scss';
 
-import { FiUser, FiCalendar } from 'react-icons/fi'
+import { FiUser, FiCalendar } from 'react-icons/fi';
 import styles from './home.module.scss';
 import Header from '../components/Header';
+import { RichText } from 'prismic-dom';
+import Link from 'next/link';
 
 interface Post {
   uid?: string;
@@ -29,9 +32,7 @@ interface HomeProps {
   postsPagination: PostPagination;
 }
 
-export default function Home() {
-  // TODO
-
+export default function Home({ next_page, results }: PostPagination) {
   return (
     <>
       <Head>
@@ -41,48 +42,24 @@ export default function Home() {
       <main className={styles.container}>
         <Header />
         <section className={styles.postsContainer}>
-          <div className={styles.posts}>
-            <h1>Como utilizar Hooks </h1>
-            <p>Pensando em sincronização em vez de ciclos de vida.</p>
-            <div className={styles.postsInfos}>
-              <div>
-                <FiUser />
-                <time>15 Mar 2021</time>
-              </div>
-              <div>
-                <FiCalendar />
-                <span>Joseph Oliveira</span>
-              </div>
-            </div>
-          </div>
-          <div className={styles.posts}>
-            <h1>Como utilizar Hooks </h1>
-            <p>Pensando em sincronização em vez de ciclos de vida.</p>
-            <div className={styles.postsInfos}>
-              <div>
-                <FiUser />
-                <time>15 Mar 2021</time>
-              </div>
-              <div>
-                <FiCalendar />
-                <span>Joseph Oliveira</span>
-              </div>
-            </div>
-          </div>
-          <div className={styles.posts}>
-            <h1>Como utilizar Hooks </h1>
-            <p>Pensando em sincronização em vez de ciclos de vida.</p>
-            <div className={styles.postsInfos}>
-              <div>
-                <FiUser />
-                <time>15 Mar 2021</time>
-              </div>
-              <div>
-                <FiCalendar />
-                <span>Joseph Oliveira</span>
-              </div>
-            </div>
-          </div>
+          {results.map(post => (
+            <Link key={post.uid} href={`/post/${post.uid}`}>
+              <a className={styles.posts}>
+                <h1>{post.data.title}</h1>
+                <p>{post.data.subtitle}</p>
+                <div className={styles.postsInfos}>
+                  <div>
+                    <FiUser />
+                    <time>{post.first_publication_date}</time>
+                  </div>
+                  <div>
+                    <FiCalendar />
+                    <span>{post.data.author}</span>
+                  </div>
+                </div>
+              </a>
+            </Link>
+          ))}
         </section>
         <button type="button" className={styles.loadMorePosts}>
           Carregar mais posts
@@ -92,11 +69,37 @@ export default function Home() {
   );
 }
 
-// export const getStaticProps: GetStaticProps = async () => {
-//   const prismic = getPrismicClient();
-  // const postsResponse = await prismic.query([]);
+export const getStaticProps: GetStaticProps = async () => {
+  const prismic = getPrismicClient();
+  const response = await prismic.query(
+    [Prismic.predicates.at('document.type', 'posts')],
+    {
+      fetch: ['posts.title', 'posts.subtitle', 'posts.author'],
+      pageSize: 10,
+    }
+  );
 
-  // return {
-  //   props: {}
-  // }
-// };
+  const results = response.results.map(post => {
+    return {
+      uid: post.uid,
+      first_publication_date: new Date(
+        post.last_publication_date
+      ).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      }),
+      data: {
+        title: RichText.asText(post.data.title),
+        subtitle: RichText.asText(post.data.subtitle),
+        author: RichText.asText(post.data.author),
+      },
+    };
+  });
+
+  return {
+    props: {
+      results,
+    },
+  };
+};
