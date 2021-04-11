@@ -1,7 +1,7 @@
 .container {
   max-width: 720px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 2.437rem 2rem;
 }
 
 
@@ -12,7 +12,6 @@
   &:hover h1{
     cursor: pointer;
     filter: brightness(0.8);
-
   }
 
   h1 {
@@ -36,6 +35,7 @@
 .postsContainer {
   max-width: 720px;
   margin: 5rem auto 0;
+  list-style: none;
 }
 
 .postsInfos {
